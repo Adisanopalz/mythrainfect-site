@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL DARURAT: MYTHRA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=JetBrains+Mono:wght@400;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Share Tech Mono', 'monospace'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                        horror: ['Creepster', 'cursive'],
+                    },
+                    colors: {
+                        mythra: {
+                            bg: '#050505',
+                            surface: '#0a0a0a',
+                            panel: '#111111',
+                            primary: '#dc2626', // Bright blood red
+                            accent: '#991b1b', // Darker blood red
+                            danger: '#7f1d1d', // Deepest red
+                            text: '#a1a1aa', // Zinc 400 (dim text)
+                            muted: '#52525b', // Zinc 600
+                            alert: '#ff0000'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #000;
+            color: #a1a1aa;
+            font-family: 'Share Tech Mono', monospace;
+            margin: 0;
+            overflow: hidden; /* Prevent scroll on body */
+        }
+        
+        /* CRT & Horror Effects */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.2) 50%,
+                rgba(0,0,0,0.2)
+            );
+            background-size: 100% 4px;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none;
+            z-index: 40;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            box-shadow: inset 0 0 150px rgba(0,0,0,0.95);
+            pointer-events: none;
+            z-index: 39;
+        }
+
+        .flicker {
+            animation: flicker 4s infinite;
+        }
+
+        .text-glow {
+            text-shadow: 0 0 8px rgba(220, 38, 38, 0.8);
+        }
+
+        @keyframes flicker {
+            0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% {
+                opacity: 1;
+            }
+            20%, 21.999%, 63%, 63.999%, 65%, 69.999% {
+                opacity: 0.2;
+            }
+        }
+
+        .glitch-hover:hover {
+            animation: glitch-anim 0.2s linear infinite;
+            color: #ff0000;
+            background-color: rgba(255,0,0,0.1);
+        }
+
+        @keyframes glitch-anim {
+            0% { transform: translate(0) }
+            20% { transform: translate(-2px, 2px) }
+            40% { transform: translate(-2px, -2px) }
+            60% { transform: translate(2px, 2px) }
+            80% { transform: translate(2px, -2px) }
+            100% { transform: translate(0) }
+        }
+
+        /* Container & UI Adjustments */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 350px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 380px;
+            }
+        }
+
+        .nav-item {
+            border-left: 2px solid transparent;
+        }
+        .nav-item.active {
+            background-color: rgba(220, 38, 38, 0.15);
+            color: #ef4444;
+            border-left: 4px solid #ef4444;
+            text-shadow: 0 0 5px rgba(239, 68, 68, 0.5);
+        }
+
+        .faction-card, .zombie-card {
+            background-color: #0a0a0a;
+            border-color: #27272a;
+        }
+        .faction-card.active, .zombie-card.active {
+            border-color: #dc2626;
+            background-color: rgba(153, 27, 27, 0.1);
+            box-shadow: inset 0 0 20px rgba(153, 27, 27, 0.2);
+        }
+
+        /* Custom Scrollbar for gritty look */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #050505; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 0; }
+        ::-webkit-scrollbar-thumb:hover { background: #dc2626; }
+
+        .typewriter {
+            overflow: hidden;
+            border-right: .15em solid #dc2626;
+            white-space: nowrap;
+            margin: 0;
+            letter-spacing: .1em;
+            animation: typing 2s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #dc2626; }
+        }
+
+        /* Responsive & Interactive Enhancements */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        .glitch-transition {
+            animation: screenGlitch 0.3s cubic-bezier(.25, .46, .45, .94) both;
+        }
+
+        @keyframes screenGlitch {
+            0% { filter: invert(1) hue-rotate(180deg) contrast(200%); opacity: 0.5; transform: scale(0.98) translate(2px, -2px); }
+            20% { filter: invert(0) hue-rotate(0deg) contrast(150%); opacity: 1; transform: scale(1.01) translate(-2px, 2px); }
+            40% { filter: contrast(150%) saturate(200%); transform: translate(1px, -1px); }
+            100% { filter: none; transform: none; }
+        }
+    </style>
+</head>
+<body class="text-mythra-text flex flex-col md:flex-row">
+
+    <!-- OVERLAYS -->
+    <div class="scanlines"></div>
+    <div class="vignette"></div>
+
+    <!-- INTRO SCREEN -->
+    <div id="intro-screen" class="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
+        <!-- Pre-Intro Button -->
+        <div id="start-sequence" class="text-center z-50">
+            <h1 class="text-6xl font-horror text-mythra-primary mb-8 flicker text-glow">MYTHRA INFECTION</h1>
+            <p class="font-mono text-mythra-muted mb-8 text-sm">> STATUS SISTEM: OFFLINE</p>
+            <button onclick="initAudio(); sfxClick(); playIntro()" onmouseenter="sfxHover()" class="border-2 border-mythra-primary text-mythra-primary px-8 py-3 font-mono text-xl hover:bg-mythra-primary hover:text-black transition-all glitch-hover">
+                [ INISIASI PROTOKOL DARURAT ]
+            </button>
+        </div>
+
+        <!-- Video Container (Hidden initially) -->
+        <div id="video-container" class="hidden relative w-full h-full max-w-6xl max-h-[80vh] bg-black flex-col items-center justify-center p-4">
+            <div class="w-full h-full border border-mythra-muted relative bg-black">
+                <!-- Pemutar Video Native HTML5 (Bebas Error Sandbox) -->
+                <video id="native-player" class="w-full h-full object-contain" onended="enterSystem()">
+                    <source src="https://cdn.discordapp.com/attachments/1476524413036925059/1478402845991632916/SPOILER_intro-mythra.mp4?ex=69a84571&is=69a6f3f1&hm=83fa126b6dc1f26e2410007e2053532106931be448263469e1408ef03fa5f1a5&" type="video/mp4">
+                    Sistem tidak dapat memuat transmisi visual.
+                </video>
+            </div>
+            <div class="mt-6 flex flex-col md:flex-row gap-4 items-center">
+                <button onclick="initAudio(); sfxClick(); enterSystem()" onmouseenter="sfxHover()" class="border border-mythra-muted text-mythra-muted px-6 py-2 font-mono hover:text-white hover:border-white transition-colors text-center text-sm glitch-hover">
+                    >> BYPASS VIDEO / AKSES TERMINAL UTAMA <<
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN SYSTEM INTERFACE (Hidden initially) -->
+    <div id="main-system" class="hidden w-full h-[100dvh] flex flex-col md:flex-row relative z-10">
+        
+        <!-- SIDEBAR -->
+        <nav class="w-full md:w-64 bg-mythra-panel border-b md:border-b-0 md:border-r border-mythra-muted flex flex-col shrink-0 z-20">
+            <div class="p-4 border-b border-mythra-muted">
+                <h1 class="text-2xl font-bold text-mythra-primary font-mono tracking-tighter text-glow flicker">
+                    MYTHRA_OS_
+                </h1>
+                <p class="text-xs text-mythra-accent mt-1 font-mono typewriter">> Koneksi Tidak Aman</p>
+            </div>
+            <div class="flex-1 overflow-y-auto p-4 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-x-visible font-mono hide-scroll">
+                <button onclick="sfxClick(); navigate('dashboard')" onmouseenter="sfxHover()" id="nav-dashboard" class="nav-item active shrink-0 md:shrink text-left px-4 py-3 border border-transparent text-sm transition-all glitch-hover">
+                    [01] BERKAS INSIDEN
+                </button>
+                <button onclick="sfxClick(); navigate('factions')" onmouseenter="sfxHover()" id="nav-factions" class="nav-item shrink-0 md:shrink text-left px-4 py-3 border border-transparent text-sm transition-all glitch-hover">
+                    [02] DATA FRAKSI
+                </button>
+                <button onclick="sfxClick(); navigate('threats')" onmouseenter="sfxHover()" id="nav-threats" class="nav-item shrink-0 md:shrink text-left px-4 py-3 border border-transparent text-sm transition-all glitch-hover">
+                    [03] MUTASI ANCAMAN
+                </button>
+                <button onclick="sfxClick(); navigate('protocols')" onmouseenter="sfxHover()" id="nav-protocols" class="nav-item shrink-0 md:shrink text-left px-4 py-3 border border-transparent text-sm transition-all glitch-hover">
+                    [04] PROTOKOL SURVIVAL
+                </button>
+            </div>
+            <div class="p-4 border-t border-mythra-muted hidden md:block">
+                <div class="bg-black border border-mythra-danger p-3 text-xs font-mono text-mythra-danger flicker">
+                    !! PERINGATAN !!<br>
+                    PELANGGARAN ZONA AMAN TINGKAT 4 TERDETEKSI.
+                </div>
+            </div>
+        </nav>
+
+        <!-- CONTENT AREA -->
+        <main class="flex-1 overflow-y-auto p-4 md:p-8 bg-mythra-bg relative scroll-smooth">
+            
+            <!-- 01: DASHBOARD / LORE -->
+            <section id="section-dashboard" class="max-w-4xl mx-auto space-y-8">
+                <div class="border-b border-mythra-muted pb-4">
+                    <h2 class="text-4xl font-horror text-mythra-text tracking-widest text-glow">REKAMAN KEHANCURAN</h2>
+                    <p class="mt-2 text-mythra-muted font-mono text-sm">> Deksripsi log otomatis. Akses disetujui.</p>
+                </div>
+
+                <div class="bg-black p-6 border-l-4 border-mythra-primary relative overflow-hidden">
+                    <div class="absolute top-0 right-0 p-2 text-mythra-danger opacity-20 text-6xl">☣️</div>
+                    <p class="font-mono text-xs text-mythra-primary mb-3">RECEIVING TRANSMISSION...</p>
+                    <p class="text-lg italic text-gray-300 leading-relaxed relative z-10">
+                        "Dunia telah hancur akibat wabah virus zombie yang menyebar dengan cepat. Kota-kota runtuh, pemerintahan tumbang, dan manusia berada di ambang kepunahan."
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-sm">
+                    <div class="bg-mythra-panel p-6 border border-mythra-muted hover:border-mythra-primary transition-colors">
+                        <h3 class="text-xl text-white mb-4 border-b border-stone-800 pb-2">>> LATAR BELAKANG</h3>
+                        <p class="mb-3 text-gray-400">
+                            Dua tahun lalu, <span class="text-mythra-primary font-bold text-glow">"Insiden Mythra"</span> terjadi. Sebuah fasilitas riset bawah tanah yang tidak diketahui asal-usulnya mengalami kebocoran masif.
+                        </p>
+                        <p class="text-gray-400">
+                            Dalam hitungan minggu, lebih dari <strong>70% populasi dunia</strong> terinfeksi varian baru yang meretas sistem saraf inangnya, mengubah mereka menjadi makhluk buas. Karantina militer gagal total. Kini, hanya reruntuhan dan <span class="text-white">Aliansi Terakhir</span> yang tersisa.
+                        </p>
+                    </div>
+
+                    <div class="bg-mythra-panel p-6 border border-mythra-muted hover:border-mythra-primary transition-colors">
+                        <h3 class="text-xl text-white mb-4 border-b border-stone-800 pb-2">>> MISI ALIANSI</h3>
+                        <ul class="space-y-4 text-gray-400">
+                            <li class="flex items-start gap-3">
+                                <span class="text-mythra-primary">01_</span>
+                                <span><strong>Bertahan:</strong> Jangan biarkan dirimu atau rekanmu tergigit.</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-mythra-primary">02_</span>
+                                <span><strong>Amankan:</strong> Kuasai wilayah dan jarah sumber daya (Safe Zone).</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-mythra-primary">03_</span>
+                                <span><strong>Temukan:</strong> Cari fasilitas lab untuk menciptakan Penawar.</span>
+                            </li>
+                            <li class="flex items-start gap-3">
+                                <span class="text-mythra-primary">04_</span>
+                                <span><strong>Restorasi:</strong> Musnahkan infeksi. Bangun kembali kemanusiaan.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 02: FACTIONS -->
+            <section id="section-factions" class="max-w-5xl mx-auto space-y-8 hidden">
+                <div class="border-b border-mythra-muted pb-4">
+                    <h2 class="text-4xl font-horror text-mythra-text tracking-widest text-glow">PENGELOMPOKAN PENYINTAS</h2>
+                    <p class="mt-2 text-mythra-muted font-mono text-sm">> Identifikasi statistik fraksi aktif. Pilih afiliasi Anda.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 font-mono text-sm">
+                    <div class="lg:col-span-4 flex flex-row lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible hide-scroll pb-2 lg:pb-0">
+                        <button id="faction-vanguard" class="shrink-0 w-48 lg:w-full faction-card active text-left p-4 border transition-all" onclick="sfxClick(); selectFaction('vanguard')" onmouseenter="sfxHover()">
+                            <h4 class="font-bold text-white">> THE VANGUARD</h4>
+                            <p class="text-xs text-mythra-muted mt-1">Militer & Keamanan</p>
+                        </button>
+                        <button id="faction-scavenger" class="shrink-0 w-48 lg:w-full faction-card text-left p-4 border transition-all" onclick="sfxClick(); selectFaction('scavenger')" onmouseenter="sfxHover()">
+                            <h4 class="font-bold text-white">> THE SCAVENGERS</h4>
+                            <p class="text-xs text-mythra-muted mt-1">Pencari Suplai</p>
+                        </button>
+                        <button id="faction-researcher" class="shrink-0 w-48 lg:w-full faction-card text-left p-4 border transition-all" onclick="sfxClick(); selectFaction('researcher')" onmouseenter="sfxHover()">
+                            <h4 class="font-bold text-white">> THE RESEARCHERS</h4>
+                            <p class="text-xs text-mythra-muted mt-1">Medis & Ilmuwan</p>
+                        </button>
+                        <button id="faction-outlaw" class="shrink-0 w-48 lg:w-full faction-card text-left p-4 border transition-all" onclick="sfxClick(); selectFaction('outlaw')" onmouseenter="sfxHover()">
+                            <h4 class="font-bold text-mythra-danger flicker">> THE OUTLAWS</h4>
+                            <p class="text-xs text-mythra-muted mt-1">Bandit Non-Aliansi</p>
+                        </button>
+                    </div>
+
+                    <div class="lg:col-span-8 bg-mythra-panel p-6 border border-mythra-muted flex flex-col relative">
+                        <div class="absolute inset-0 bg-[url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABZJREFUeNpi2r9//38bIxsDBYAECDAAAw0CVQ3q2sQAAAAASUVORK5CYII=')] opacity-10 pointer-events-none"></div>
+                        
+                        <div class="mb-4 pb-4 border-b border-stone-800 min-h-[140px] z-10">
+                            <h3 id="faction-title" class="text-2xl font-bold text-mythra-primary mb-2 text-glow">THE VANGUARD</h3>
+                            <p id="faction-desc" class="text-gray-400 mb-3 text-xs uppercase leading-relaxed">Sisa-sisa pasukan bersenjata dan aparat penegak hukum.</p>
+                            <p id="faction-task" class="text-gray-300 mb-1"><strong>TUGAS:</strong> Menjaga pertahanan Safe Zone, memimpin ekspedisi pembersihan zombie.</p>
+                            <p id="faction-skill" class="text-gray-300"><strong>AHLI:</strong> Penggunaan senjata api tingkat lanjut, taktik tempur, ketahanan fisik.</p>
+                        </div>
+                        <div class="flex-1 w-full flex items-center justify-center z-10">
+                            <div class="chart-container">
+                                <canvas id="factionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 03: THREATS (ZOMBIES) -->
+            <section id="section-threats" class="max-w-5xl mx-auto space-y-8 hidden">
+                <div class="border-b border-mythra-danger pb-4">
+                    <h2 class="text-4xl font-horror text-mythra-danger tracking-widest text-glow flicker">KLASIFIKASI MUTASI</h2>
+                    <p class="mt-2 text-mythra-primary font-mono text-sm">> Peringatan: Data biologis subjek terinfeksi. Menampilkan grafis mematikan.</p>
+                </div>
+
+                <div class="flex flex-row md:grid md:grid-cols-3 gap-2 mb-4 font-mono text-sm overflow-x-auto md:overflow-x-visible hide-scroll pb-2 md:pb-0">
+                    <button onclick="sfxClick(); selectZombie('walker')" onmouseenter="sfxHover()" id="zom-walker" class="shrink-0 w-48 md:w-auto zombie-card active p-4 border text-left transition-all hover:border-mythra-primary">
+                        <h4 class="font-bold text-white">> THE WALKERS</h4>
+                        <span class="text-xs text-mythra-muted block mt-1">Mutasi Fase 1</span>
+                    </button>
+                    <button onclick="sfxClick(); selectZombie('runner')" onmouseenter="sfxHover()" id="zom-runner" class="shrink-0 w-48 md:w-auto zombie-card p-4 border text-left transition-all hover:border-mythra-primary">
+                        <h4 class="font-bold text-white">> THE RUNNERS</h4>
+                        <span class="text-xs text-mythra-muted block mt-1">Mutasi Fase 2</span>
+                    </button>
+                    <button onclick="sfxClick(); selectZombie('bloater')" onmouseenter="sfxHover()" id="zom-bloater" class="shrink-0 w-48 md:w-auto zombie-card p-4 border text-left transition-all hover:border-mythra-danger text-glow">
+                        <h4 class="font-bold text-mythra-danger flicker">> THE BLOATERS</h4>
+                        <span class="text-xs text-red-900 block mt-1">Mutasi Toksik Lanjutan</span>
+                    </button>
+                </div>
+
+                <div class="bg-mythra-panel p-6 border border-mythra-danger relative overflow-hidden">
+                    <div class="absolute inset-0 bg-red-900 opacity-5 pointer-events-none"></div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center z-10 relative">
+                        <div class="font-mono">
+                            <h3 id="zombie-title" class="text-3xl font-bold text-mythra-danger mb-4 text-glow">
+                                THE WALKERS
+                            </h3>
+                            <p id="zombie-desc" class="text-gray-400 text-sm leading-relaxed border-l-2 border-mythra-muted pl-4 mb-6">
+                                Zombie biasa yang lambat, tapi sangat berbahaya jika berada dalam kelompok besar. Mereka mewakili mayoritas populasi yang terinfeksi pada awal wabah.
+                            </p>
+                            <div class="bg-black p-4 border border-mythra-danger">
+                                <h4 class="text-mythra-primary mb-2 text-xs uppercase animate-pulse">>> REKOMENDASI TAKTIS:</h4>
+                                <p id="zombie-tactics" class="text-sm text-gray-300">Gunakan senjata jarak dekat (melee) untuk menghemat amunisi. Hindari terpojok di area sempit.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="chart-container">
+                                <canvas id="threatChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 04: PROTOCOLS -->
+            <section id="section-protocols" class="max-w-4xl mx-auto space-y-8 hidden">
+                <div class="border-b border-mythra-muted pb-4">
+                    <h2 class="text-4xl font-horror text-white tracking-widest text-glow">HUKUM BERTAHAN HIDUP</h2>
+                    <p class="mt-2 text-mythra-muted font-mono text-sm">> Pelanggaran terhadap protokol berarti eksekusi atau kematian biologis.</p>
+                </div>
+
+                <div class="space-y-4 font-mono text-sm">
+                    <div class="bg-mythra-panel p-6 border-l-4 border-stone-600 hover:bg-[#1a1a1a] transition-colors relative">
+                        <h3 class="text-xl font-bold text-white mb-2">> 01. JAM MALAM (CURFEW)</h3>
+                        <p class="text-gray-400 leading-relaxed">
+                            Saat matahari terbenam, agresivitas subjek terinfeksi meningkat 400%. <strong>Berlindunglah di balik tembok pertahanan sebelum senja.</strong> Kegelapan adalah wilayah mereka. Patroli malam dilarang keras tanpa persetujuan komandan Vanguard.
+                        </p>
+                    </div>
+
+                    <div class="bg-mythra-panel p-6 border-l-4 border-mythra-danger hover:bg-[#1a0505] transition-colors relative flicker">
+                        <div class="absolute right-4 top-4 text-mythra-danger opacity-20 text-4xl">🩸</div>
+                        <h3 class="text-xl font-bold text-mythra-primary mb-2 text-glow">> 02. GIGITAN ADALAH VONIS MATI</h3>
+                        <p class="text-gray-400 leading-relaxed">
+                            Transmisi cairan tubuh menyebarkan patogen Mythra dalam waktu <span class="text-white font-bold text-glow">60 MENIT</span>. Jika tergores atau tergigit, amputasi bagian tubuh tersebut atau laporkan diri ke divisi Medis untuk eksperimen penawar. Jika tidak tertolong, rekan Anda diizinkan menarik pelatuk.
+                        </p>
+                    </div>
+
+                    <div class="bg-mythra-panel p-6 border-l-4 border-blue-800 hover:bg-[#050a1a] transition-colors relative">
+                        <h3 class="text-xl font-bold text-blue-500 mb-2">> 03. KEHENINGAN RADIO</h3>
+                        <p class="text-gray-400 leading-relaxed">
+                            Radio adalah nyawa Anda, tetapi suara menarik kematian. Lakukan laporan (check-in) singkat setiap 2 jam. Gunakan kode morse jika terkurung. Bantuan tembakan hanya diberikan pada prioritas target tinggi.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-12 p-4 border border-mythra-danger text-mythra-danger text-center font-mono text-xs text-glow flicker uppercase">
+                    >> BERTAHAN... ATAU PUNAH <<
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        // --- Audio System (Web Audio API) ---
+        let audioCtx;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function sfxHover() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 1200; // Nada tinggi pendek (Terminal beep)
+            osc.type = 'sine';
+            gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.05);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+        }
+
+        function sfxClick() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.value = 100; // Nada rendah mekanikal (Thud)
+            osc.type = 'square';
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.1);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function sfxGlitch() {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.frequency.setValueAtTime(50, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(300, audioCtx.currentTime + 0.1);
+            osc.type = 'sawtooth';
+            gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        // --- Intro Sequence Logic ---
+        function playIntro() {
+            document.getElementById('start-sequence').classList.add('hidden');
+            const videoContainer = document.getElementById('video-container');
+            const video = document.getElementById('native-player');
+            
+            videoContainer.classList.remove('hidden');
+            videoContainer.classList.add('flex');
+            
+            // Memutar video native secara langsung
+            video.play().catch(e => {
+                // Tampilkan kontrol jika browser memblokir autoplay (kebijakan browser)
+                video.controls = true;
+                console.warn("Autoplay dicegah oleh browser.");
+            });
+        }
+
+        function enterSystem() {
+            const intro = document.getElementById('intro-screen');
+            const main = document.getElementById('main-system');
+            const video = document.getElementById('native-player');
+            
+            // Hentikan video native
+            video.pause();
+            video.currentTime = 0;
+            
+            // Hide intro, show system
+            intro.style.display = 'none';
+            main.classList.remove('hidden');
+            
+            // Initial render charts for active tab if any
+            if(document.getElementById('nav-factions').classList.contains('active')) {
+                initFactionChart();
+            }
+        }
+
+        // --- Data Storage ---
+        const factionData = {
+            vanguard: {
+                title: "THE VANGUARD",
+                desc: "Sisa-sisa pasukan bersenjata dan aparat penegak hukum.",
+                task: "Menjaga pertahanan Safe Zone, memimpin ekspedisi pembersihan zombie.",
+                skill: "Penggunaan senjata api tingkat lanjut, taktik tempur, ketahanan fisik.",
+                stats: [90, 80, 40, 30] // Combat, Defense, Stealth, Medical
+            },
+            scavenger: {
+                title: "THE SCAVENGERS",
+                desc: "Warga sipil yang beradaptasi untuk mencari sisa peradaban.",
+                task: "Menyelusup ke zona merah (area terinfeksi berat) untuk mencari suplai.",
+                skill: "Bergerak tanpa suara, merakit barang darurat, navigasi buta.",
+                stats: [40, 50, 90, 40]
+            },
+            researcher: {
+                title: "THE RESEARCHERS",
+                desc: "Harapan terakhir untuk mematahkan kode genetik virus.",
+                task: "Merawat penyintas, meneliti mutasi, meracik serum.",
+                skill: "Pertolongan pertama ekstrim, isolasi patogen, sains.",
+                stats: [20, 30, 50, 100]
+            },
+            outlaw: {
+                title: "THE OUTLAWS",
+                desc: "Mereka yang membuang moral demi dominasi teritorial.",
+                task: "Menjarah penyintas lain, menguasai titik suplai ilegal.",
+                skill: "Penyergapan brutal, sabotase, eksekusi tanpa ampun.",
+                stats: [80, 40, 70, 20]
+            }
+        };
+
+        const zombieData = {
+            walker: {
+                title: "THE WALKERS",
+                desc: "Zombie biasa yang lambat, tapi sangat berbahaya jika berada dalam kelompok besar. Sistem kognitif mati, didorong oleh kelaparan buta.",
+                tactics: "Gunakan senjata jarak dekat (melee) untuk menghemat amunisi. Prioritaskan pukulan benda tumpul ke tengkorak.",
+                stats: [20, 50, 80] // Speed, Damage, Group Threat
+            },
+            runner: {
+                title: "THE RUNNERS",
+                desc: "Subjek baru terinfeksi. Adrenalin merusak otot mereka, memberikan kecepatan sprint yang tidak manusiawi sebelum tubuh membusuk.",
+                tactics: "Hancurkan persendian kaki terlebih dahulu. Menembak tubuh bagian atas tidak akan menghentikan momentum mereka berlari.",
+                stats: [90, 60, 50]
+            },
+            bloater: {
+                title: "THE BLOATERS",
+                desc: "Anomali genetik. Tubuh membengkak karena gas infeksi korosif. Ledakan dari jarak 3 meter berakibat fatal.",
+                tactics: "TEMBAK DARI JARAK MAKSIMAL. Jika berada di ruangan tertutup, evakuasi natrium langsung. Jangan hirup sporanya.",
+                stats: [30, 100, 95]
+            }
+        };
+
+        // --- State Management & Charts ---
+        let radarChartInstance = null;
+        let barChartInstance = null;
+
+        // Custom config to fit horror dark theme
+        Chart.defaults.color = '#71717a'; // gray text
+        Chart.defaults.font.family = "'JetBrains Mono', monospace";
+
+        const commonChartOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.9)',
+                    titleColor: '#ef4444',
+                    bodyColor: '#d4d4d8',
+                    borderColor: '#7f1d1d',
+                    borderWidth: 1,
+                    cornerRadius: 0
+                }
+            }
+        };
+
+        function initFactionChart() {
+            const ctx = document.getElementById('factionChart').getContext('2d');
+            if (radarChartInstance) radarChartInstance.destroy();
+            
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['TEMPUR', 'BERTAHAN', 'SILUMAN', 'MEDIS'],
+                    datasets: [{
+                        label: 'Atribut',
+                        data: factionData.vanguard.stats,
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)', // Red transparent
+                        borderColor: '#ef4444',
+                        pointBackgroundColor: '#000',
+                        pointBorderColor: '#ef4444',
+                        pointHoverBackgroundColor: '#ef4444',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    ...commonChartOptions,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            pointLabels: {
+                                font: { size: 11 },
+                                color: '#a1a1aa'
+                            },
+                            ticks: { display: false, min: 0, max: 100 }
+                        }
+                    }
+                }
+            });
+        }
+
+        function initThreatChart() {
+            const ctx = document.getElementById('threatChart').getContext('2d');
+            if (barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['KECEPATAN', 'FATALITAS', 'ANCAMAN GRUP'],
+                    datasets: [{
+                        label: 'Level Ancaman',
+                        data: zombieData.walker.stats,
+                        backgroundColor: [
+                            'rgba(113, 113, 122, 0.7)', // gray
+                            'rgba(220, 38, 38, 0.7)',   // red
+                            'rgba(127, 29, 29, 0.7)'    // dark red
+                        ],
+                        borderColor: [
+                            '#a1a1aa',
+                            '#ef4444',
+                            '#b91c1c'
+                        ],
+                        borderWidth: 1,
+                        borderRadius: 0 // Sharp corners for tech look
+                    }]
+                },
+                options: {
+                    ...commonChartOptions,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: '#52525b' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#a1a1aa',
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- Interaction Handlers ---
+        function navigate(sectionId) {
+            // Animasi transisi layar/glitch
+            const mainContent = document.querySelector('main');
+            mainContent.classList.remove('glitch-transition');
+            void mainContent.offsetWidth; // Trigger reflow untuk merestart animasi
+            mainContent.classList.add('glitch-transition');
+            sfxGlitch(); // Mainkan suara glitch saat pindah tab
+
+            // Hide all sections
+            document.querySelectorAll('main > section').forEach(el => el.classList.add('hidden'));
+            // Show targeted section
+            document.getElementById('section-' + sectionId).classList.remove('hidden');
+
+            // Update nav styles
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById('nav-' + sectionId).classList.add('active');
+
+            // Init charts lazily when visible
+            if(sectionId === 'factions') {
+                if(!radarChartInstance) initFactionChart();
+            } else if (sectionId === 'threats') {
+                if(!barChartInstance) initThreatChart();
+            }
+        }
+
+        function selectFaction(factionKey) {
+            document.querySelectorAll('.faction-card').forEach(el => el.classList.remove('active'));
+            document.getElementById('faction-' + factionKey).classList.add('active');
+
+            const data = factionData[factionKey];
+            document.getElementById('faction-title').textContent = data.title;
+            document.getElementById('faction-desc').textContent = data.desc;
+            document.getElementById('faction-task').innerHTML = `<strong>TUGAS:</strong> ${data.task}`;
+            document.getElementById('faction-skill').innerHTML = `<strong>AHLI:</strong> ${data.skill}`;
+
+            if(radarChartInstance) {
+                radarChartInstance.data.datasets[0].data = data.stats;
+                
+                // Color tweaks per faction
+                let colorStr = '220, 38, 38'; // Vanguard Red
+                if(factionKey === 'researcher') colorStr = '59, 130, 246'; // Med Blue
+                else if(factionKey === 'scavenger') colorStr = '16, 185, 129'; // Scav Green
+                else if(factionKey === 'outlaw') colorStr = '113, 113, 122'; // Outlaw Gray
+                
+                radarChartInstance.data.datasets[0].backgroundColor = `rgba(${colorStr}, 0.2)`;
+                radarChartInstance.data.datasets[0].borderColor = `rgb(${colorStr})`;
+                radarChartInstance.data.datasets[0].pointBorderColor = `rgb(${colorStr})`;
+                radarChartInstance.data.datasets[0].pointHoverBackgroundColor = `rgb(${colorStr})`;
+
+                radarChartInstance.update();
+            }
+        }
+
+        function selectZombie(zombieKey) {
+            document.querySelectorAll('.zombie-card').forEach(el => el.classList.remove('active'));
+            document.getElementById('zom-' + zombieKey).classList.add('active');
+
+            const data = zombieData[zombieKey];
+            document.getElementById('zombie-title').textContent = data.title;
+            document.getElementById('zombie-desc').textContent = data.desc;
+            document.getElementById('zombie-tactics').textContent = data.tactics;
+
+            if(barChartInstance) {
+                barChartInstance.data.datasets[0].data = data.stats;
+                // Make Bloater color intense red
+                if (zombieKey === 'bloater') {
+                    barChartInstance.data.datasets[0].backgroundColor[2] = 'rgba(255, 0, 0, 0.8)';
+                    barChartInstance.data.datasets[0].borderColor[2] = '#ff0000';
+                } else {
+                    barChartInstance.data.datasets[0].backgroundColor[2] = 'rgba(127, 29, 29, 0.7)';
+                    barChartInstance.data.datasets[0].borderColor[2] = '#b91c1c';
+                }
+                barChartInstance.update();
+            }
+        }
+
+        // Prevent space/scrolling issues
+        window.addEventListener('keydown', function(e) {
+            if(e.keyCode == 32 && e.target == document.body) {
+                e.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
